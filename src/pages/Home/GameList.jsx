@@ -38,7 +38,6 @@ const GameList = ({ title, data, isHistory = false }) => {
                 </TableCell>
               </TableRow> :
                 data.map((game) => {
-                console.log(game.rewardPool);
                 return(
                   <TableRow key={game.gameId.toString()}>
                     <TableCell align='center'>{game.gameId.toString()}</TableCell>

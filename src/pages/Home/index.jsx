@@ -1,46 +1,44 @@
 import React, { useEffect, useState } from 'react'
 import { Typography, Box } from '@mui/material';
 
-import { getGames } from '../../web3';
 import GameList from './GameList';
 import Header from '../../components/Header'
-
+import contractAbi from '../../constants/tictactoe_abi.json';
+import { useAccount, useContractRead } from "wagmi";
 import { HomeContainer, HomeContentContainer } from './index.style'
-import { EMPTY_ADDRESS } from '../../constants';
+import { EMPTY_ADDRESS, TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
 
 const Home = () => {
 
-    const [loading, setLoading] = useState(false);
     const [myGames, setMyGames] = useState([]);
     const [myEndedGames, setMyEndedGames] = useState([]);
     const [startedGames, setStartedGames] = useState([]);
     const [availableGames, setAvalailableGames] = useState([]);
     const [endedGames, setEndedGames] = useState([]);
-    const address = '0x61DE9D2A70425E110046C21d00F0b48523123a72'
-    
+    const { isConnected, address } = useAccount();
+    const { data, isError, isLoading } = useContractRead({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'getGames' });
+
     const getGameList = async () => {
         try {
-            setLoading(true);
-            const result = await getGames();
-            const _startedGames = result.filter(
+            const _startedGames = data.filter(
                 (game) => game.isStarted === true
             );
-            const _endedGames = result.filter((game) => game.isStarted === false);
-            const _availableGames = result.filter(
+            const _endedGames = data.filter((game) => game.isStarted === false);
+            const _availableGames = data.filter(
                 (game) =>
-                game.playerOne != EMPTY_ADDRESS && game.playerTwo == EMPTY_ADDRESS
+                (game.playerOne.toString() != address && game.playerOne.toString() != EMPTY_ADDRESS) && game.playerTwo.toString() == EMPTY_ADDRESS
             );
-            if (true) {
-                const playerGames = result.filter(
+            if (isConnected && !!address) {
+                const playerGames = data.filter(
                     (game) =>
                         (game.playerOne.toString() === address || game.playerTwo.toString() === address) &&
-                        game.winner.toString() === EMPTY_ADDRESS
+                        game.winner === 0
                 );
 
-                const playerEndedGames = result.filter(
+                const playerEndedGames = data.filter(
                     (game) =>
                         (game.playerOne.toString() === address || game.playerTwo.toString() === address) &&
-                        game.winner.toString() !== EMPTY_ADDRESS
+                        game.winner !== 0
                 );
                 setMyGames(playerGames);
                 setMyEndedGames(playerEndedGames);
@@ -48,18 +46,15 @@ const Home = () => {
             setAvalailableGames(_availableGames);
             setStartedGames(_startedGames);
             setEndedGames(_endedGames);
-            setLoading(false);
         } catch (error) {
-            setLoading(false);
             console.log({error});
         }
     }
 
-    console.log({myGames, myEndedGames, availableGames, startedGames, endedGames});
-
     useEffect(() => {
+        if (!data) return;
         getGameList();
-    }, [])
+    }, [data, address])
 
     return (
         <HomeContainer>
@@ -69,7 +64,7 @@ const Home = () => {
                 <Box display={'flex'}>
                     <GameList data={myGames} title={'Current Games'}/>
                     <GameList data={availableGames} title={'Available Games'} />
-                    <GameList data={endedGames} title={'History'} isHistory={true} />
+                    <GameList data={myEndedGames} title={'History'} isHistory={true} />
                 </Box>
             </HomeContentContainer>
         </HomeContainer>

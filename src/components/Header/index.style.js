@@ -27,14 +27,8 @@ export const HeaderContainer = styled("div")(() => ({
     flexDirection: "row",
     alignItems: "center",
 
-    "> div": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: "16px",
-      svg: {
-        cursor: "pointer",
-      },
+    svg: {
+      cursor: "pointer",
     },
   },
 }));

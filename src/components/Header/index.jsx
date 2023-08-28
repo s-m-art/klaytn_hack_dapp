@@ -1,45 +1,35 @@
 import React, { useState } from 'react'
-import { Typography, Box, Button } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import TokenIcon from '@mui/icons-material/Token';
 
 import CustomModal from '../CustomModal';
 import CustomInput from '../CustomInput';
 import logo from '../../assets/favicon.ico';
-import { claimReward, startGame } from '../../web3';
-
+import { claimReward } from '../../web3';
 import { HeaderContainer } from './index.style';
-import { getShortenAddress } from '../../utils';
+import { Web3Button } from '@web3modal/react'
+import { useAccount, useContractWrite } from 'wagmi'
+import contractAbi from '../../constants/tictactoe_abi.json'
+import { parseEther } from 'viem';
+import { TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
 
 const Header = () => {
 
-  const [account, setAccount] = useState(null);
   const [open, setOpen] = useState(false);
   const [createGameInfo, setCreateGameInfo] = useState({
     entryFee: ''
   });
-
-  const connectWallet = async () => {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-      .catch((err) => {
-        if (err.code === 4001) {
-          // EIP-1193 userRejectedRequest error
-          // If this happens, the user rejected the connection request.
-          console.log('Please connect to MetaMask.');
-        } else {
-          console.error(err);
-        }
-      });
-    const connectingAccount = accounts[0];
-    setAccount(connectingAccount);
-  }
+  const { writeAsync } = useContractWrite({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'startGame' });
+  const { address } = useAccount();
 
   const onCreateGame = async () => {
     try {
-      const result = await startGame(account, createGameInfo.entryFee);
-      console.log({result});
+      await writeAsync({ from: address, value: parseEther(createGameInfo.entryFee) });
+      setOpen(false);
     } catch (error) {
-      console.log({error});
+      console.log({ error });
+      setOpen(false);
     }
   }
 
@@ -72,18 +62,9 @@ const Header = () => {
           <Typography>Home</Typography>
         </Box>
         <Box className='right'>
-          {
-            account ?
-              <Box>
-                <TokenIcon onClick={onClaimReward} />
-                <AddCircleIcon onClick={onOpenModal} />
-                <Typography>Hi, {getShortenAddress(account, 5)}</Typography>
-              </Box>
-              :
-              <Button variant='contained' onClick={connectWallet}>
-                Connect Wallet
-              </Button>
-          }
+          <TokenIcon onClick={onClaimReward} />
+          <AddCircleIcon onClick={onOpenModal} />
+          <Web3Button />
         </Box>
       </Box>
       <CustomModal
