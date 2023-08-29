@@ -10,40 +10,110 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { getShortenAddress } from '../../utils';
+import { useAccount, useContractWrite, useContractEvent } from 'wagmi';
+import { TIC_TAC_TOE_CONTRACT_ADDRESS, TYPE_LIST } from '../../constants';
+import contractAbi from '../../constants/tictactoe_abi.json';
+import { useNavigate } from 'react-router-dom';
 
-const GameList = ({ title, data, isHistory = false }) => {
+const GameList = ({ title, data, type }) => {
   const web3 = new Web3(window.ethereum);
-  const account = '0x61DE9D2A70425E110046C21d00F0b48523123a72';
-  const onJoinGame = async (gameId) => {
+  console.log({type});
+  const { data : txHash, isLoading, isSuccess, writeAsync } = useContractWrite({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'joinGame'
+  });
 
+  const { address } = useAccount();
+  const navigate = useNavigate();
+
+  const renderAction = (game) => {
+    switch (type) {
+      case TYPE_LIST.CURRENT: return {
+        header: 'Action',
+        label: 'View',
+        action: () => {
+          onViewGame(game.gameId.toString());
+        },
+        isClickable: true
+      }
+      case TYPE_LIST.AVAILABLE: return {
+        header: 'Action',
+        label: 'Join',
+        action: () => {
+          onJoinGame(game.gameId.toString(), game.rewardPool.toString());
+        },
+        isClickable: true
+      }
+      case TYPE_LIST.HISTORY:
+        let winner;
+        if (game.winner === 1) {
+          winner = game.playerOne;
+        } else {
+          winner = game.playerTwo;
+        }
+        return {
+          header: 'Result',
+          label: winner === address ? "Victory" : "Defeat",
+          action: null,
+          isClickable: false
+        }
+      default: return null;
+    }
   }
+
+  const onJoinGame = async (gameId, entryFee) => {
+    const result = writeAsync({
+      args: [Number(gameId)],
+      from: address,
+      value: entryFee
+    });
+    await result.then(console.log('asds'))
+  }
+
+  const onViewGame = (gameId) => {
+    navigate(`/game/${gameId}`)
+  }
+
+  useContractEvent({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS,
+    abi: contractAbi,
+    eventName: "MadeMove",
+    listener(log) {
+      console.log(log);
+      const [_gameId] = log;
+      if (Number(game.gameId) === Number(_gameId)) {
+        fetchGame();
+      }
+    },
+  });
+
   return (
     <GameTableContainer>
       <Typography className='home__content__table-title'>{title}</Typography>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{height: 694, overflow: 'auto'}}>
+        <Table stickyHeader>
           <TableHead className='home__content__table-header'>
             <TableRow>
               <TableCell align='center'>GameID</TableCell>
               <TableCell align='center'>Award</TableCell>
               <TableCell align='center'>Player One</TableCell>
-              <TableCell align='right'>{isHistory ? 'Result' : 'Join'}</TableCell>
+              <TableCell align='right'>{type === TYPE_LIST.HISTORY ? 'Result' : 'Action'}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {
-              data?.length === 0 ? <TableRow>
+              data.length === 0 ? <TableRow>
                 <TableCell colSpan={4} align='center'>
                   No Records
                 </TableCell>
               </TableRow> :
                 data.map((game) => {
+                const actions = renderAction(game);
                 return(
                   <TableRow key={game.gameId.toString()}>
                     <TableCell align='center'>{game.gameId.toString()}</TableCell>
                     <TableCell align='center'>{Number(web3.utils.fromWei(game.rewardPool.toString(), 'ether'))} KLAY</TableCell>
                     <TableCell align='center'>{getShortenAddress(game.playerOne.toString(), 5)}</TableCell>
-                    <TableCell align='right'>{isHistory ? (account === game.winner.toString() ? 'Win' : 'Lose') : 'Join'}</TableCell>
+                    <TableCell align='right' onClick={actions.action} className={actions.isClickable ? 'clickable' : ''}>{actions.label}</TableCell>
                   </TableRow>
                 )
               })

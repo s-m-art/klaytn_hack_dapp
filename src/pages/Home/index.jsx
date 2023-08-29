@@ -6,7 +6,7 @@ import Header from '../../components/Header'
 import contractAbi from '../../constants/tictactoe_abi.json';
 import { useAccount, useContractRead } from "wagmi";
 import { HomeContainer, HomeContentContainer } from './index.style'
-import { EMPTY_ADDRESS, TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
+import { EMPTY_ADDRESS, TIC_TAC_TOE_CONTRACT_ADDRESS, TYPE_LIST } from '../../constants';
 
 const Home = () => {
 
@@ -15,6 +15,7 @@ const Home = () => {
     const [startedGames, setStartedGames] = useState([]);
     const [availableGames, setAvalailableGames] = useState([]);
     const [endedGames, setEndedGames] = useState([]);
+    const [triggerFetch, setTriggerFetch] = useState(false);
     const { isConnected, address } = useAccount();
     const { data, isError, isLoading } = useContractRead({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'getGames' });
 
@@ -54,17 +55,17 @@ const Home = () => {
     useEffect(() => {
         if (!data) return;
         getGameList();
-    }, [data, address])
+    }, [data, address, triggerFetch])
 
     return (
         <HomeContainer>
-            <Header />
+            <Header setTriggerFetch={setTriggerFetch} />
             <HomeContentContainer>
                 <Typography className='home__content-mantra'>Play Tictactoe and Earn!</Typography>
                 <Box display={'flex'}>
-                    <GameList data={myGames} title={'Current Games'}/>
-                    <GameList data={availableGames} title={'Available Games'} />
-                    <GameList data={myEndedGames} title={'History'} isHistory={true} />
+                    <GameList data={myGames} title={'Current Games'} type={TYPE_LIST.CURRENT} />
+                    <GameList data={availableGames} title={'Available Games'} type={TYPE_LIST.AVAILABLE} />
+                    <GameList data={myEndedGames} title={'History'} type={TYPE_LIST.HISTORY} />
                 </Box>
             </HomeContentContainer>
         </HomeContainer>

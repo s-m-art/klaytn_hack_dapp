@@ -1,93 +1,157 @@
 import React, { useState } from 'react'
-import { Typography, Box } from '@mui/material';
+import { Box } from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import TokenIcon from '@mui/icons-material/Token';
 
 import CustomModal from '../CustomModal';
 import CustomInput from '../CustomInput';
 import logo from '../../assets/favicon.ico';
-import { claimReward } from '../../web3';
 import { HeaderContainer } from './index.style';
 import { Web3Button } from '@web3modal/react'
 import { useAccount, useContractWrite } from 'wagmi'
 import contractAbi from '../../constants/tictactoe_abi.json'
 import { parseEther } from 'viem';
 import { TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
+import { useNavigate } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({setTriggerFetch}) => {
 
-  const [open, setOpen] = useState(false);
-  const [createGameInfo, setCreateGameInfo] = useState({
-    entryFee: ''
+  const DISPLAYING_MODAL = {
+    START: 1,
+    CLAIM: 2,
+    NONE: 0,
+  }
+  const [displayModal, setDisplayModal] = useState(false);
+  const [entryFee, setEntryFee] = useState('');
+  const [claimAmount, setClaimAmount] = useState('');
+  const navigate = useNavigate();
+
+  const { isLoading, isSuccess, write: startGame } = useContractWrite({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'startGame'
   });
-  const { writeAsync } = useContractWrite({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'startGame' });
+
+  const { write: claimReward } = useContractWrite({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'claimRewards'
+  });
+
   const { address } = useAccount();
 
-  const onCreateGame = async () => {
+  const onCreateGame = () => {
     try {
-      await writeAsync({ from: address, value: parseEther(createGameInfo.entryFee) });
-      setOpen(false);
+      startGame({ from: address, value: parseEther(entryFee) });
+      if (isSuccess) {
+        setDisplayModal(DISPLAYING_MODAL.NONE);
+        setTriggerFetch(prev => !prev);
+      }
     } catch (error) {
       console.log({ error });
-      setOpen(false);
+      setDisplayModal(DISPLAYING_MODAL.NONE);
     }
   }
 
   const onClaimReward = async () => {
     try {
-      const result = await claimReward(account, amount);
+      claimReward({ from: address, args: parseEther(claimAmount) });
+      if (isSuccess) {
+        setDisplayModal(DISPLAYING_MODAL.NONE);
+        setTriggerFetch(prev => !prev);
+      }
     } catch (error) {
       console.log({error});
     }
   }
 
-  const onOpenModal = () => {
-    setOpen(true);
+  const onRequestToCreateGame = () => {
+    setDisplayModal(DISPLAYING_MODAL.START);
+  }
+
+  const onRequestToClaimRewards = () => {
+    setDisplayModal(DISPLAYING_MODAL.CLAIM);
   }
 
   const onCloseModal = () => {
-    setOpen(false);
-    setCreateGameInfo({entryFee: ''})
+    setDisplayModal(DISPLAYING_MODAL.NONE);
+    setEntryFee('');
+    setClaimAmount('');
   }
   
-  const onChangeCreateGameInfo = (e) => {
-    setCreateGameInfo(prev => ({...prev, [e.target.name]: e.target.value}))
+  const onChangeEntryFee = (e) => {
+    setEntryFee(e.target.value)
+  }
+
+  const onChangeClaimAmount = (e) => {
+    setClaimAmount(e.target.value)
+  }
+
+  const renderModal = () => {
+    switch (displayModal) {
+      case DISPLAYING_MODAL.START:
+        return (
+          <CustomModal
+            open={true}
+            title={"Create New Game"}
+            onConfirm={onCreateGame}
+            onCancel={onCloseModal}
+            onClose={onCloseModal}
+            confirmMessage={"Submit"}
+            cancelMessage={"Cancel"}
+          >
+            <Box>
+              <CustomInput
+                name="entryFee"
+                label={'Entry Fee'}
+                placeholder="Enter entry fee"
+                value={entryFee}
+                onChange={onChangeEntryFee}
+                width="100%"
+                required
+              />
+            </Box>
+          </CustomModal>
+        )
+      case DISPLAYING_MODAL.CLAIM:
+        return (
+          <CustomModal
+            open={true}
+            title={"Claim Rewards"}
+            onConfirm={() => onClaimReward()}
+            onCancel={onCloseModal}
+            onClose={onCloseModal}
+            confirmMessage={"Submit"}
+            cancelMessage={"Cancel"}
+          >
+            <Box>
+              <CustomInput
+                name="claimAmount"
+                label={'Amount'}
+                placeholder="Enter amount"
+                value={claimAmount}
+                onChange={onChangeClaimAmount}
+                width="100%"
+                required
+              />
+            </Box>
+          </CustomModal>
+        )
+      case DISPLAYING_MODAL.NONE:
+        return null;
+    }
   }
 
   return (
     <HeaderContainer>
       <Box>
-        <Box className='left'>
-          <img src={logo} alt='logo' />
-          <Typography>Home</Typography>
+        <Box className='left' sx={{ '>*': { cursor: 'pointer'} }}>
+          <img src={logo} alt='logo' onClick={() => navigate('/')}/>
+          {/* <Typography onClick={() => navigate('/')}>Home</Typography> */}
         </Box>
         <Box className='right'>
-          <TokenIcon onClick={onClaimReward} />
-          <AddCircleIcon onClick={onOpenModal} />
+          <TokenIcon onClick={onRequestToClaimRewards} />
+          <AddCircleIcon onClick={onRequestToCreateGame} />
           <Web3Button />
         </Box>
       </Box>
-      <CustomModal
-        open={open}
-        title={"Create New Game"}
-        onConfirm={onCreateGame}
-        onCancel={onCloseModal}
-        onClose={onCloseModal}
-        confirmMessage={"Submit"}
-        cancelMessage={"Cancel"}
-      >
-        <Box>
-          <CustomInput
-            name="entryFee"
-            label={'Entry Fee'}
-            placeholder="Enter entry fee"
-            value={createGameInfo.entryFee}
-            onChange={onChangeCreateGameInfo}
-            width="100%"
-            required
-          />
-        </Box>
-      </CustomModal>
+      {renderModal()}
     </HeaderContainer>
   )
 }
