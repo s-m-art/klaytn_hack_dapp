@@ -1,6 +1,6 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import { useAccount, useContractReads } from 'wagmi';
+import { useAccount, useContractEvent, useContractReads } from 'wagmi';
 import { TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
 import contractAbi from '../../constants/tictactoe_abi.json';
 import GameBoard from './GameBoard';
@@ -9,6 +9,8 @@ import Header from '../../components/Header';
 import { Box, Typography } from '@mui/material';
 import { getShortenAddress } from '../../utils';
 import { formatEther } from 'viem';
+import { toast } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
 
 const Game = () => {
 
@@ -18,7 +20,7 @@ const Game = () => {
     abi: contractAbi,
   }
   const {address} = useAccount();
-  const { data, isError, isLoading } = useContractReads({
+  const { data, isError, isLoading, refetch } = useContractReads({
     contracts: [
       {
         ...tictactoeContract,
@@ -41,12 +43,44 @@ const Game = () => {
     ]
   })
 
+  useContractEvent({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS,
+    abi: contractAbi,
+    eventName: 'JoinedGame',
+    listener(log) {
+      const [ex] = log;
+      const { args: { playerTwo } } = ex;
+      if (playerTwo !== address) {
+        refetch();
+        toast.success("Game is started");
+      }
+    },
+    chainId: 1001,
+  })
+
+  useContractEvent({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS,
+    abi: contractAbi,
+    eventName: 'MadeMove',
+    listener(log) {
+      const [ex] = log;
+      const { args: { gameId, player } } = ex;
+      console.log(log);
+      if (id === gameId.toString()) {
+        refetch();
+        if (player === address) {
+          toast.success('Move successfully');
+        } else {
+          toast.success('It\'s your turn');
+        }
+      }
+    },
+    chainId: 1001,
+  })
+
   if (!data) {
     return null;
   }
-
-  console.log(data[0].result[2]);
-  console.log(address);
 
   return (
     <GameDetailContainer>

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Typography, Box } from '@mui/material';
 import Web3 from 'web3';
 import { GameTableContainer } from './index.style';
@@ -10,20 +10,25 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { getShortenAddress } from '../../utils';
-import { useAccount, useContractWrite, useContractEvent } from 'wagmi';
+import { useAccount, useContractWrite, useContractEvent, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
 import { TIC_TAC_TOE_CONTRACT_ADDRESS, TYPE_LIST } from '../../constants';
 import contractAbi from '../../constants/tictactoe_abi.json';
 import { useNavigate } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
+import { toast } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
 
 const GameList = ({ title, data, type }) => {
   const web3 = new Web3(window.ethereum);
-  console.log({type});
-  const { data : txHash, isLoading, isSuccess, writeAsync } = useContractWrite({
-    address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'joinGame'
-  });
 
   const { address } = useAccount();
   const navigate = useNavigate();
+  const [gameConfig, setGameConfig] = useState({
+    isJoining: false,
+    gameId: null,
+    entryFee: null,
+  });
+  const debouncedGameConfig = useDebounce(gameConfig);
 
   const renderAction = (game) => {
     switch (type) {
@@ -60,14 +65,26 @@ const GameList = ({ title, data, type }) => {
     }
   }
 
+  const { config } = usePrepareContractWrite({
+    address: TIC_TAC_TOE_CONTRACT_ADDRESS,
+    abi: contractAbi,
+    functionName: 'joinGame',
+    enabled: Boolean(debouncedGameConfig.isJoining),
+    value: debouncedGameConfig.entryFee,
+    args: [Number(debouncedGameConfig.gameId)],
+  })
+
+
+  const { data: txHash, write: joinGame } = useContractWrite(config);
+
   const onJoinGame = async (gameId, entryFee) => {
-    const result = writeAsync({
-      args: [Number(gameId)],
-      from: address,
-      value: entryFee
-    });
-    await result.then(console.log('asds'))
+    setGameConfig({gameId, entryFee, isJoining: true});
+    joinGame?.();
   }
+
+  useWaitForTransaction({
+    hash: txHash?.hash
+  })
 
   const onViewGame = (gameId) => {
     navigate(`/game/${gameId}`)
@@ -76,15 +93,16 @@ const GameList = ({ title, data, type }) => {
   useContractEvent({
     address: TIC_TAC_TOE_CONTRACT_ADDRESS,
     abi: contractAbi,
-    eventName: "MadeMove",
+    eventName: 'JoinedGame',
     listener(log) {
-      console.log(log);
-      const [_gameId] = log;
-      if (Number(game.gameId) === Number(_gameId)) {
-        fetchGame();
-      }
+        console.log(log);
+        const [ex] = log;
+        const { args: { gameId: thisGameId } } = ex;
+        navigate(`/game/${thisGameId.toString()}`);
+        toast.success('Join game successfully');
     },
-  });
+    chainId: 1001,
+  })
 
   return (
     <GameTableContainer>

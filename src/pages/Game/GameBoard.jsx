@@ -5,11 +5,12 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { useAccount, useContractWrite } from 'wagmi';
 import { TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
 import contractAbi from '../../constants/tictactoe_abi.json';
+import { toast } from 'react-toastify';
 
 const GameBoard = ({ id, board }) => {
     
     const [boardArray, setBoardArray] = useState([]);
-    const {data, isLoading, isSuccess, write} = useContractWrite({
+    const {isError, write} = useContractWrite({
         address: TIC_TAC_TOE_CONTRACT_ADDRESS,
         abi: contractAbi,
         functionName: 'makeMove'
@@ -53,7 +54,7 @@ const GameBoard = ({ id, board }) => {
             temp = temp.concat(row);
         }
         setBoardArray(temp);
-    }, [])
+    }, [board])
     
     if (!board) {
         return null;

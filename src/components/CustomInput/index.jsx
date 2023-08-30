@@ -44,7 +44,7 @@ export default function CustomInput({
 
   return (
     <StyledInputContainer {...props} required={required}>
-      <Typography className="required label">{label}</Typography>
+      <Typography className="label">{label}:</Typography>
       <WrapInput>
         <InputType>
           <Box sx={{display: 'flex'}} className={`${prefix ? 'has-prefix' : ''}`}>

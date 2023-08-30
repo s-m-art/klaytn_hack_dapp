@@ -37,43 +37,47 @@ const CustomModal = ({
     disableScrollLock
     width={width}
   >
-    <StyledDialogTitle>
-      <Typography className="title">{title}</Typography>
-      {hasCloseButton ? (
-        <IconButton className="close-icon" onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </StyledDialogTitle>
-    <StyledDialogContent>{children}</StyledDialogContent>
-    <StyledDialogAction>
-      {cancelMessage && (
-        <Button
-          variant="contained"
-          color="secondary"
-          sx={{ background: cancelColor }}
-          onClick={onCancel}
-        >
-          {cancelMessage}
-        </Button>
-      )}
-      {loading ? (
-        <Button variant="contained" color="primary" disabled>
-          <CircularProgress size="24px" sx={{ color: 'white' }} />
-        </Button>
-      ) : (
-        confirmMessage && (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      onConfirm();
+    }}>
+      <StyledDialogTitle>
+        <Typography className="title">{title}</Typography>
+        {hasCloseButton ? (
+          <IconButton className="close-icon" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        ) : null}
+      </StyledDialogTitle>
+      <StyledDialogContent>{children}</StyledDialogContent>
+      <StyledDialogAction>
+        {cancelMessage && (
           <Button
             variant="contained"
-            color="primary"
-            onClick={onConfirm}
-            disabled={disableSubmitButton}
+            color="secondary"
+            sx={{ background: cancelColor }}
+            onClick={onCancel}
           >
-            {confirmMessage}
+            {cancelMessage}
           </Button>
-        )
-      )}
-    </StyledDialogAction>
+        )}
+        {loading ? (
+          <Button variant="contained" color="primary" disabled>
+            <CircularProgress size="24px" sx={{ color: 'white' }} />
+          </Button>
+        ) : (
+          confirmMessage && (
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={disableSubmitButton}
+            >
+              {confirmMessage}
+            </Button>
+          )
+        )}
+      </StyledDialogAction>
+    </form>
   </StyledDialog>
 );
 

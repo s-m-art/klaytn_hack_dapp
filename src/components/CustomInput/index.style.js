@@ -2,7 +2,11 @@ import { FormControl, styled } from "@mui/material";
 
 const StyledInputContainer = styled(FormControl)(
   ({ theme, required, error }) => ({
-    width: "100%",
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
 
     [theme.breakpoints.down("md")]: {
       marginBottom: 15,

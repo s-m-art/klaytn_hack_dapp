@@ -9,6 +9,10 @@ import Game from './pages/Game';
 import { configureChains, WagmiConfig, createConfig } from "wagmi";
 import { Web3Modal } from '@web3modal/react';
 import { EthereumClient, w3mConnectors, w3mProvider } from '@web3modal/ethereum'
+import { ToastContainer } from 'react-toastify';
+import NewGame from './pages/NewGame';
+import Claim from './pages/Claim';
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
 
@@ -16,6 +20,14 @@ function App() {
     {
       path: '/',
       element: <Home />
+    },
+    {
+      path: '/new',
+      element: <NewGame />
+    },
+    {
+      path: '/claim',
+      element: <Claim />
     },
     {
       path: '/game/:id',
@@ -37,13 +49,14 @@ function App() {
     rpcUrls: {
       default:
       {
-        http: ["https://public-en-baobab.klaytn.net"]
+        http: ["https://public-en-baobab.klaytn.net"],
+        webSocket: ['wss://public-en-baobab.klaytn.net/ws'],
       },
       public:
       {
-        http: ["https://public-en-baobab.klaytn.net"]
+        http: ["https://public-en-baobab.klaytn.net"],
+        webSocket: ['wss://public-en-baobab.klaytn.net/ws'],
       },
-      
     },
     blockExplorers: {
       default: {
@@ -54,7 +67,7 @@ function App() {
     testnet: true,
   };
 
-  const { chains, publicClient } = configureChains(
+  const { chains, publicClient, webSocketPublicClient } = configureChains(
     [baobab],
     [w3mProvider({ projectId })]
   );
@@ -62,6 +75,7 @@ function App() {
   const wagmiConfig = createConfig({
     autoConnect: true,
     connectors: w3mConnectors({ projectId, chains }),
+    webSocketPublicClient,
     publicClient,
   });
   
@@ -72,6 +86,7 @@ function App() {
       <WagmiConfig config={wagmiConfig}>
         <RouterProvider router={router} />
       </WagmiConfig>
+      <ToastContainer />
       <Web3Modal projectId={projectId} ethereumClient={ethereumClient}/>
     </>
   )
