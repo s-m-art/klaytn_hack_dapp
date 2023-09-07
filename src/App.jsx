@@ -13,6 +13,8 @@ import { ToastContainer } from 'react-toastify';
 import NewGame from './pages/NewGame';
 import Claim from './pages/Claim';
 import "react-toastify/dist/ReactToastify.css";
+import { DEFAULT_PROJECT_ID } from './constants';
+import { CustomW3mConnector } from './helpers/CustomW3mConnector';
 
 function App() {
 
@@ -34,8 +36,6 @@ function App() {
       element: <Game />
     }
   ])
-
-  const projectId = 'ce8a0716742bec9975780559ca33ce71';
 
   const baobab = {
     id: 1001,
@@ -69,12 +69,15 @@ function App() {
 
   const { chains, publicClient, webSocketPublicClient } = configureChains(
     [baobab],
-    [w3mProvider({ projectId })]
+    [w3mProvider({ projectId: '779782067b414023d7730e8e9173093d' })]
   );
 
   const wagmiConfig = createConfig({
     autoConnect: true,
-    connectors: w3mConnectors({ projectId, chains }),
+    connectors: [new CustomW3mConnector({
+      chains: [baobab], options: {
+      projectId: '779782067b414023d7730e8e9173093d', showQrModal: false, methods: ["debug_traceCall", "eth_requestSessionKey"], optionalMethods: ["debug_traceCallx"]
+    }})],
     webSocketPublicClient,
     publicClient,
   });
@@ -87,7 +90,7 @@ function App() {
         <RouterProvider router={router} />
       </WagmiConfig>
       <ToastContainer />
-      <Web3Modal projectId={projectId} ethereumClient={ethereumClient}/>
+      <Web3Modal projectId={'779782067b414023d7730e8e9173093d'} ethereumClient={ethereumClient}/>
     </>
   )
 }

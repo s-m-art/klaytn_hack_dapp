@@ -4,9 +4,11 @@ import { Typography, Box } from '@mui/material';
 import GameList from './GameList';
 import Header from '../../components/Header'
 import contractAbi from '../../constants/tictactoe_abi.json';
-import { useAccount, useContractRead } from "wagmi";
+import { useAccount, useContractRead, useWalletClient } from "wagmi";
 import { HomeContainer, HomeContentContainer } from './index.style'
 import { EMPTY_ADDRESS, TIC_TAC_TOE_CONTRACT_ADDRESS, TYPE_LIST } from '../../constants';
+import { formatTransactionRequest, publicActions } from 'viem';
+import * as Account from 'viem/accounts';
 
 const Home = () => {
 
@@ -17,7 +19,33 @@ const Home = () => {
     const [endedGames, setEndedGames] = useState([]);
     const [triggerFetch, setTriggerFetch] = useState(false);
     const { isConnected, address } = useAccount();
-    const { data, isError, isLoading } = useContractRead({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'getGames' });
+    const { data, isLoading } = useContractRead({ address: TIC_TAC_TOE_CONTRACT_ADDRESS, abi: contractAbi, functionName: 'getGames' });
+    const { data: walletClient, isSuccess, isError } = useWalletClient();
+    console.log({isError});
+    const thisClient = isSuccess ? walletClient.extend((client) => ({
+        ...publicActions(client),
+        async requestSessionKey() {
+            let address;
+            const sessionAccount = localStorage.getItem("account");
+            if (!sessionAccount) {
+                const privateKey = Account.generatePrivateKey();
+                address = Account.privateKeyToAccount(privateKey).address;
+                localStorage.setItem('account', JSON.stringify({ address, privateKey }));
+            } else {
+                address = JSON.parse(sessionAccount).address;
+            }
+            const res = await client.request({
+                method: 'eth_requestSessionKey',
+                params: [formatTransactionRequest({
+                    address,
+                    maxAmount: 10000000000,
+                    validAfter: 1694142868,
+                    validUntil: 1694315668,
+                }), 'latest', {}]
+            }) // return await client.signMessage({message: 'aaa'})},
+            console.log(res);
+        }
+    })) : null
 
     const getGameList = async () => {
         try {
@@ -66,6 +94,14 @@ const Home = () => {
                     <GameList data={myGames} title={'Current Games'} type={TYPE_LIST.CURRENT} />
                     <GameList data={availableGames} title={'Available Games'} type={TYPE_LIST.AVAILABLE} />
                     <GameList data={myEndedGames} title={'History'} type={TYPE_LIST.HISTORY} />
+                    <button onClick={async () => {
+                        try {
+                            console.log({thisClient});
+                            await thisClient.requestSessionKey();
+                        } catch (error) {
+                            console.log({error});
+                        }
+                    }}>Heloo</button>
                 </Box>
             </HomeContentContainer>
         </HomeContainer>
