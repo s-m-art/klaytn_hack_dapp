@@ -15,6 +15,7 @@ import Claim from './pages/Claim';
 import "react-toastify/dist/ReactToastify.css";
 import { DEFAULT_PROJECT_ID } from './constants';
 import { CustomW3mConnector } from './helpers/CustomW3mConnector';
+import { InjectedConnector } from "@wagmi/core/connectors/injected";
 
 function App() {
 
@@ -77,7 +78,7 @@ function App() {
     connectors: [new CustomW3mConnector({
       chains: [baobab], options: {
       projectId: '779782067b414023d7730e8e9173093d', showQrModal: false, methods: ["debug_traceCall", "eth_requestSessionKey"], optionalMethods: ["debug_traceCallx"]
-    }})],
+    }}), new InjectedConnector({ chains, options: { shimDisconnect: true } })],
     webSocketPublicClient,
     publicClient,
   });

@@ -21,9 +21,7 @@ const Claim = () => {
         eventName: 'ClaimReward',
         listener(log) {
           const [ex] = log;
-          console.log({ex});
           const { args: { player } } = ex;
-          console.log(address);
           if (player.toString() === address.toString()) {
             toast.success('Claim reward successfully')
           }

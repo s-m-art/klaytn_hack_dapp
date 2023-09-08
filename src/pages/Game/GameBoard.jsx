@@ -5,7 +5,9 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { useAccount, useContractWrite } from 'wagmi';
 import { TIC_TAC_TOE_CONTRACT_ADDRESS } from '../../constants';
 import contractAbi from '../../constants/tictactoe_abi.json';
+import accountContractAbi from '../../constants/account_abi.json';
 import { toast } from 'react-toastify';
+import { Contract, ethers } from 'ethers';
 
 const GameBoard = ({ id, board }) => {
     
@@ -17,7 +19,7 @@ const GameBoard = ({ id, board }) => {
     })
     const { address } = useAccount();
 
-    const onMove = (square, index) => {
+    const onMove = async (square, index) => {
         if (square !== 0) return;
         let row, column;
         switch (index) {
@@ -31,6 +33,19 @@ const GameBoard = ({ id, board }) => {
             case 7: row = 2; column = 1; break;
             case 8: row = 2; column = 2; break;
         }
+        const account = JSON.parse(localStorage.getItem('account'));
+        if (account) {
+
+        const provider = new ethers.providers.JsonRpcProvider('https://public-en-baobab.klaytn.net/');
+        const signer = new ethers.Wallet(account.privateKey, provider);
+        const contractGame = new Contract(TIC_TAC_TOE_CONTRACT_ADDRESS, contractAbi);
+        const preparedTnx = await contractGame.populateTransaction.makeMove(row, column, id);
+        console.log({address, preparedTnx});
+        const accountContract = new Contract(address, accountContractAbi, signer);
+        const tx = await accountContract.execute(TIC_TAC_TOE_CONTRACT_ADDRESS, '0', preparedTnx.data);
+        await tx.wait();
+        }
+        // console.log({tx});
         write({
             args: [row, column, id],
             from: address
@@ -64,7 +79,7 @@ const GameBoard = ({ id, board }) => {
             <GameBoardContainer>
                 {
                     boardArray.map((square, index) => {
-                        return <GameBoardSquare onClick={() => onMove(square, index)}>{renderSquare(square)}</GameBoardSquare>
+                        return <GameBoardSquare onClick={async () => await onMove(square, index)}>{renderSquare(square)}</GameBoardSquare>
                     })
                 }
             </GameBoardContainer>

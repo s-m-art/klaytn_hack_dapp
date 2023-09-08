@@ -65,7 +65,6 @@ const Game = () => {
     listener(log) {
       const [ex] = log;
       const { args: { gameId, player } } = ex;
-      console.log(log);
       if (id === gameId.toString()) {
         refetch();
         if (player === address) {

@@ -5,10 +5,15 @@ import {
   UserRejectedRequestError,
   createWalletClient,
   custom,
+  formatTransaction,
+  formatTransactionRequest,
   getAddress,
   numberToHex,
+  publicActions,
 } from "viem";
 import { Connector } from "wagmi";
+import * as Account from "viem/accounts";
+import { MAX_SPEND_AMOUNT } from "../constants";
 
 const NAMESPACE = "eip155";
 const ADD_ETH_CHAIN_METHOD = "wallet_addEthereumChain";
@@ -332,6 +337,7 @@ export class CustomW3mConnector extends Connector {
 
   onDisconnect = () => {
     this.#setRequestedChainsIds([]);
+    localStorage.clear("account");
     this.emit("disconnect");
   };
 
@@ -342,4 +348,61 @@ export class CustomW3mConnector extends Connector {
   onConnect = () => {
     this.emit("connect", {});
   };
+
+  // async #requestSessionKey(chainId) {
+  //   const client = await this.getWalletClient({ chainId });
+  //   try {
+  //     const thisClient = client.extend((client) => ({
+  //       ...publicActions(client),
+  //       async requestSessionKey() {
+  //         let address,
+  //           isSet = true;
+  //         const sessionAccount = localStorage.getItem("account");
+  //         if (!sessionAccount) {
+  //           const privateKey = Account.generatePrivateKey();
+  //           address = Account.privateKeyToAccount(privateKey).address;
+  //           isSet = false;
+  //         } else {
+  //           address = JSON.parse(sessionAccount).address;
+  //         }
+  //         const validAfter = Date.now() * 1e3;
+  //         const validUntil = validAfter + 36 * 1e5;
+  //         console.log({
+  //           address,
+  //           maxAmount: MAX_SPEND_AMOUNT,
+  //           validAfter,
+  //           validUntil,
+  //         });
+  //         const res = await client.request({
+  //           method: "eth_requestSessionKey",
+  //           params: [
+  //             formatTransactionRequest({
+  //               address,
+  //               maxAmount: MAX_SPEND_AMOUNT,
+  //               validAfter,
+  //               validUntil,
+  //             }),
+  //             "latest",
+  //             {},
+  //           ],
+  //         });
+  //         console.log(res);
+  //         if (res.success) {
+  //           if (!isSet) {
+  //             localStorage.setItem(
+  //               "account",
+  //               JSON.stringify({ address, privateKey })
+  //             );
+  //           }
+  //         } else {
+  //           console.log("error");
+  //         }
+  //       },
+  //     }));
+  //     await thisClient.requestSessionKey();
+  //     console.log("asdds");
+  //   } catch (error) {
+  //     console.log({ error });
+  //   }
+  // }
 }
